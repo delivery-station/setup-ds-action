@@ -1,0 +1,36 @@
+name: 'Setup Delivery Station'
+description: 'Download and install DS (Delivery Station) CLI with optional plugins'
+author: 'Delivery Station'
+branding:
+  icon: 'package'
+  color: 'blue'
+
+inputs:
+  version:
+    description: 'Version of DS to install (e.g., v1.0.0 or latest)'
+    required: false
+    default: 'latest'
+  plugins:
+    description: 'Comma-separated list of plugin names to install'
+    required: false
+    default: ''
+  registry:
+    description: 'OCI registry for plugins (if not using default)'
+    required: false
+    default: ''
+  token:
+    description: 'GitHub token for API requests (to avoid rate limits)'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  version:
+    description: 'The version of DS that was installed'
+  path:
+    description: 'Path to the DS binary'
+  cache-hit:
+    description: 'Whether the DS binary was restored from cache'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

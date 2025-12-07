@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build Action
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build action
+      run: npm run build
+    
+    - name: Check for uncommitted changes
+      run: |
+        if [[ -n $(git status --porcelain dist/) ]]; then
+          echo "::error::Uncommitted changes in dist/ directory. Please run 'npm run build' and commit the changes."
+          git diff dist/
+          exit 1
+        fi
+
+  test:
+    name: Test on ${{ matrix.os }}
+    needs: build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Test action (latest version)
+      uses: ./
+      with:
+        version: 'latest'
+    
+    - name: Verify DS installation
+      run: ds version
+      shell: bash
+    
+    - name: Test with plugins
+      uses: ./
+      with:
+        version: 'latest'
+        plugins: 'porter'
+    
+    - name: Verify plugin installation
+      run: ds plugin list
+      shell: bash
