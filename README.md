@@ -9,6 +9,7 @@ GitHub Action to download and install the [Delivery Station](https://github.com/
 - ✅ Binary caching for faster workflows
 - ✅ Automatic plugin installation
 - ✅ Version pinning or latest release
+- ✅ Optional config provisioning
 
 ## Usage
 
@@ -48,6 +49,22 @@ GitHub Action to download and install the [Delivery Station](https://github.com/
     registry: 'ghcr.io/my-org'
 ```
 
+### Provide Configuration
+
+```yaml
+- name: Setup DS with config
+  uses: delivery-station/setup-ds-action@v1
+  with:
+    config: |
+      auth:
+        credentials:
+          - registry: ghcr.io
+            username: ${{ github.actor }}
+            token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+By default the action writes the configuration to `~/.config/ds/config.yaml` on Linux and macOS, or `%APPDATA%\ds\config.yaml` on Windows. Override the location with the `config-path` input when needed.
+
 ## Inputs
 
 | Input | Description | Required | Default |
@@ -56,6 +73,8 @@ GitHub Action to download and install the [Delivery Station](https://github.com/
 | `plugins` | Comma-separated list of plugin names to install | No | `` |
 | `registry` | OCI registry for plugins (if not using default) | No | `` |
 | `token` | GitHub token for API requests (to avoid rate limits) | No | `${{ github.token }}` |
+| `config` | YAML configuration content to write before running DS | No | `` |
+| `config-path` | Optional override for the DS config file path | No | `` |
 
 ## Outputs
 
@@ -64,6 +83,7 @@ GitHub Action to download and install the [Delivery Station](https://github.com/
 | `version` | The version of DS that was installed |
 | `path` | Path to the DS binary directory |
 | `cache-hit` | Whether the DS binary was restored from cache (`true` or `false`) |
+| `config-path` | The path where the configuration file was written (empty when no config is provided) |
 
 ## Complete Workflow Example
 

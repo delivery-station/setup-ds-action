@@ -22,6 +22,14 @@ inputs:
     description: 'GitHub token for API requests (to avoid rate limits)'
     required: false
     default: ${{ github.token }}
+  config:
+    description: 'YAML configuration content to write to the DS config file'
+    required: false
+    default: ''
+  config-path:
+    description: 'Optional override for the DS config file path'
+    required: false
+    default: ''
 
 outputs:
   version:
@@ -30,6 +38,8 @@ outputs:
     description: 'Path to the DS binary'
   cache-hit:
     description: 'Whether the DS binary was restored from cache'
+  config-path:
+    description: 'The path where the DS config file was written'
 
 runs:
   using: 'node20'

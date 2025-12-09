@@ -22,6 +22,53 @@ interface DownloadResult {
   version: string;
 }
 
+/** Expand '~' in user provided paths */
+function expandHome(input: string): string {
+  if (!input) {
+    return input;
+  }
+  if (input === '~') {
+    return os.homedir();
+  }
+  if (input.startsWith('~/') || input.startsWith('~\\')) {
+    return path.join(os.homedir(), input.slice(2));
+  }
+  return input;
+}
+
+/** Resolve DS config file path */
+function resolveConfigPath(providedPath?: string): string {
+  if (providedPath && providedPath.trim() !== '') {
+    const normalized = expandHome(providedPath.trim());
+    return path.resolve(normalized);
+  }
+
+  if (os.platform() === 'win32') {
+    const appData = process.env.APPDATA;
+    if (!appData) {
+      throw new Error('APPDATA environment variable is not set; cannot resolve DS config path');
+    }
+    return path.join(appData, 'ds', 'config.yaml');
+  }
+
+  return path.join(os.homedir(), '.config', 'ds', 'config.yaml');
+}
+
+/** Persist DS configuration to disk */
+async function writeConfigFile(content: string, providedPath?: string): Promise<string> {
+  const targetPath = resolveConfigPath(providedPath);
+  const directory = path.dirname(targetPath);
+
+  await fs.promises.mkdir(directory, { recursive: true });
+  await fs.promises.writeFile(targetPath, content, { encoding: 'utf8' });
+
+  if (os.platform() !== 'win32') {
+    await fs.promises.chmod(targetPath, 0o600);
+  }
+
+  return targetPath;
+}
+
 /**
  * Get platform-specific download info
  */
@@ -183,6 +230,8 @@ async function run(): Promise<void> {
     const plugins = core.getInput('plugins') || '';
     const registry = core.getInput('registry') || '';
     const token = core.getInput('token') || process.env.GITHUB_TOKEN || '';
+    const configContent = core.getInput('config');
+    const configPathInput = core.getInput('config-path');
     
     // Download and setup DS
     const { path: dsPath, version: installedVersion } = await downloadDS(version, token);
@@ -195,6 +244,16 @@ async function run(): Promise<void> {
     core.setOutput('version', installedVersion);
     core.setOutput('path', dsPath);
     
+    let writtenConfigPath = '';
+    if (configContent && configContent.trim() !== '') {
+      core.setSecret(configContent);
+      writtenConfigPath = await writeConfigFile(configContent, configPathInput);
+      core.info(`Wrote DS config to ${writtenConfigPath}`);
+    } else if (configPathInput && configPathInput.trim() !== '') {
+      writtenConfigPath = resolveConfigPath(configPathInput);
+    }
+    core.setOutput('config-path', writtenConfigPath);
+
     // Verify installation
     const { binaryName } = getPlatformInfo();
     const dsBinary = path.join(dsPath, binaryName);
